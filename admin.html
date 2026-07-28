@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookings — Admin</title>
+  <script src="config.js"></script>
+  <style>
+    :root { --accent: #F4A300; --bg: #0A0A0A; --panel: #1a1a1a; --line: rgba(255,255,255,.1); }
+    * { margin:0; padding:0; box-sizing:border-box; font-family: system-ui, sans-serif; }
+    body { background: var(--bg); color: #fff; padding: 1rem; min-height: 100vh; }
+    header { text-align: center; padding: 1.5rem 0; }
+    header h1 { font-size: 1.5rem; color: var(--accent); }
+    header p { opacity: .6; font-size: .85rem; margin-top: .3rem; }
+    .refresh { display: block; margin: 0 auto 1.5rem; background: var(--accent); color: #000; border: none; padding: .7rem 1.5rem; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    .booking { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: .8rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+    .booking .name { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .booking .row { display: flex; justify-content: space-between; margin-top: .5rem; font-size: .9rem; }
+    .booking .label { opacity: .5; }
+    .booking .time { color: #4ade80; font-weight: 600; }
+    .booking a { color: #fff; text-decoration: none; }
+    .empty { text-align: center; opacity: .5; padding: 3rem 1rem; }
+    .count { text-align: center; opacity: .6; margin-bottom: 1rem; font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📅 Bookings Dashboard</h1>
+    <p>New Era Apps · AXIOM</p>
+  </header>
+  <button class="refresh" onclick="loadBookings()">↻ Refresh</button>
+  <div class="count" id="count"></div>
+  <div id="list"><div class="empty">Loading bookings…</div></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+    const cfg = window.APP_CONFIG || {};
+    firebase.initializeApp(cfg.firebase);
+    const db = firebase.firestore();
+    if (cfg.admin) {
+      document.querySelector("header h1").textContent = "📅 " + (cfg.admin.title || "Bookings");
+      document.querySelector("header p").textContent = cfg.admin.subtitle || "";
+    }
+    if (cfg.branding?.accent) {
+      document.documentElement.style.setProperty("--accent", cfg.branding.accent);
+    }
+
+    async function loadBookings() {
+      const list = document.getElementById("list");
+      const count = document.getElementById("count");
+      list.innerHTML = '<div class="empty">Loading…</div>';
+      try {
+        const bizName = cfg.business?.name || "";
+        const snap = await db.collection("bookings")
+          .where("business", "==", bizName)
+          .orderBy("created", "desc")
+          .get();
+        if (snap.empty) {
+          list.innerHTML = '<div class="empty">No bookings yet.</div>';
+          count.textContent = "";
+          return;
+        }
+        count.textContent = snap.size + " booking" + (snap.size === 1 ? "" : "s");
+        list.innerHTML = "";
+        snap.forEach(doc => {
+          const b = doc.data();
+          const d = b.created ? new Date(b.created).toLocaleString() : "";
+          list.innerHTML += `
+            <div class="booking">
+              <div class="name">${b.customer_name || "Unknown"}</div>
+              <div class="row"><span class="label">Service</span><span>${b.service || "—"}</span></div>
+              <div class="row"><span class="label">Requested</span><span class="time">${b.requested_time || "—"}</span></div>
+              <div class="row"><span class="label">Phone</span><a href="tel:${b.phone}">${b.phone || "—"}</a></div>
+              <div class="row"><span class="label">Booked</span><span>${d}</span></div>
+            </div>`;
+        });
+      } catch (e) {
+        list.innerHTML = '<div class="empty">Error loading bookings: ' + e.message + '</div>';
+      }
+    }
+    loadBookings();
+  </script>
+</body>
+</html>

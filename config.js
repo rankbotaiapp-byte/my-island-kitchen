@@ -38,6 +38,7 @@ window.APP_CONFIG = {
 
   content: {
     hero: {
+      banner: "banner4.jpg",
       headline: "Island Fusion, Done Right",
       subtext: "Flavors from across the islands, built on French technique — served hot at Area 61 Taphouse in Grants Pass.",
       buttons: [
